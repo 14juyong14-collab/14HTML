@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>反射神経ゲーム</title>
+
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: #0e1024;
+    color: #fff;
+    font-family: system-ui, sans-serif;
+    user-select: none;
+  }
+
+  #info {
+    position: fixed;
+    top: 10px;
+    width: 100%;
+    text-align: center;
+    font-size: 18px;
+    z-index: 10;
+  }
+
+  #game {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .zone {
+    flex: 1;
+    position: relative;
+  }
+
+  .tapButton {
+    width: 100%;
+    height: 100%;
+    border: none;
+    font-size: 64px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #4fc3f7, #81d4fa);
+    color: #000;
+  }
+
+  /* ===== リザルト画面 ===== */
+  #result {
+    display: none;
+    height: 100vh;
+    background: radial-gradient(circle at top, #1b1f4a, #0e1024);
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 24px;
+    text-align: center;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.08);
+    padding: 32px 40px;
+    border-radius: 20px;
+    min-width: 260px;
+  }
+
+  .card h1 {
+    margin: 0 0 16px;
+    font-size: 32px;
+  }
+
+  .score {
+    font-size: 24px;
+    margin: 8px 0;
+  }
+
+  .best {
+    color: #ffd54f;
+    font-size: 20px;
+  }
+
+  .retry {
+    margin-top: 16px;
+    padding: 14px 32px;
+    font-size: 18px;
+    border-radius: 999px;
+    border: none;
+    background: #4fc3f7;
+    color: #000;
+  }
+</style>
+</head>
+
+<body>
+
+<div id="info">
+  残り <span id="time">20</span>s　
+  ミス <span id="miss">0</span>/3　
+  スコア <span id="score">0</span>
+</div>
+
+<div id="game">
+  <div class="zone" id="top"></div>
+  <div class="zone" id="bottom"></div>
+</div>
+
+<div id="result">
+  <div class="card">
+    <h1>RESULT</h1>
+    <div class="score">SCORE : <span id="finalScore"></span></div>
+    <div class="best">BEST : <span id="bestScore"></span></div>
+    <button class="retry" onclick="location.reload()">RETRY</button>
+  </div>
+</div>
+
+<script>
+let time = 20;
+let score = 0;
+let miss = 0;
+let playing = true;
+let currentButton = null;
+
+const timeEl = document.getElementById("time");
+const scoreEl = document.getElementById("score");
+const missEl = document.getElementById("miss");
+
+const topZone = document.getElementById("top");
+const bottomZone = document.getElementById("bottom");
+
+const best = Number(localStorage.getItem("bestScore") || 0);
+
+function spawnButton() {
+  if (!playing) return;
+
+  if (currentButton) currentButton.remove();
+
+  const btn = document.createElement("button");
+  btn.className = "tapButton";
+  btn.textContent = score + 1; // ← スコア順
+
+  btn.onclick = e => {
+    e.stopPropagation();
+    score++;
+    scoreEl.textContent = score;
+    spawnButton();
+  };
+
+  const zone = Math.random() < 0.5 ? topZone : bottomZone;
+  zone.appendChild(btn);
+  currentButton = btn;
+}
+
+function missTap() {
+  if (!playing) return;
+  miss++;
+  missEl.textContent = miss;
+  if (miss >= 3) endGame();
+}
+
+[topZone, bottomZone].forEach(z =>
+  z.addEventListener("click", missTap)
+);
+
+function endGame() {
+  playing = false;
+  if (currentButton) currentButton.remove();
+
+  const bestScore = Math.max(score, best);
+  localStorage.setItem("bestScore", bestScore);
+
+  document.getElementById("game").style.display = "none";
+  document.getElementById("result").style.display = "flex";
+  document.getElementById("finalScore").textContent = score;
+  document.getElementById("bestScore").textContent = bestScore;
+}
+
+spawnButton();
+
+const timer = setInterval(() => {
+  time--;
+  timeEl.textContent = time;
+  if (time <= 0) {
+    clearInterval(timer);
+    endGame();
+  }
+}, 1000);
+</script>
+
+</body>
+</html>
